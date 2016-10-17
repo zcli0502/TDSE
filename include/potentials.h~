@@ -1,0 +1,587 @@
+// $Id: Laser.h 315 2006-07-18 21:41:15Z arvid $
+#ifndef POTENTIALS_H
+#define POTENTIALS_H
+
+using namespace std;
+
+namespace Cartesian_4D{
+
+  struct ABVparam {
+  
+    /**
+     * Declare ABV coefficients.
+     */
+    double ABV_A_x1;
+    double ABV_B_x1;		// different from Cylindrical3D !!     Everything has to be changed and checked accordingly!
+  
+    double ABV_A_x2;
+    double ABV_B_x2;
+  
+    double ABV_A_x3;
+    double ABV_B_x3;
+
+    double ABV_A_x4;
+    double ABV_B_x4;
+  
+    /**
+     * Declare potentials.
+     */
+    vector<double> ABV_V;
+    vector<double> ABV_V_deriv;
+  
+  };
+
+
+  /***********************************************************************************************/
+  /***********************************************************************************************/
+
+  /*************** atom potential*****************/
+
+  struct Potential_He_plus_2D : ABVparam
+  {
+    
+    /* Two electron in 2D model, Helium problem */
+    
+    double charge;
+    double charge_nucleus;
+    double mass;
+    double softening_en;
+
+
+    /* Constructor to initialize the default values: */
+    Potential_He_plus_2D( wavefunction &wf) {
+      charge = -1. ;
+      charge_nucleus = 2.;
+      mass = 1.;
+      softening_en = 0.164;  // M.Lein NJP(2012)
+      
+      updateABV(wf);
+    };
+    Potential_He_plus_2D(wavefunction &wf, double q, double Q, double m, double _soft_en) {
+      charge = q;
+      charge_nucleus = Q;
+      mass = m;
+      softening_en = _soft_en;
+      
+      updateABV(wf);
+    };
+    void updateABV(const wavefunction &wf)
+    {
+      /* following code is from code from Create_Potential */
+      ABV_A_x1 = -0.5/mass;
+      ABV_A_x2 = -0.5/mass;
+      ABV_A_x3 = -0.5/mass;
+      ABV_A_x4 = -0.5/mass;
+      ABV_B_x1 = charge/mass;
+      ABV_B_x2 = charge/mass; 
+      ABV_B_x3 = charge/mass;
+      ABV_B_x4 = charge/mass;
+      /* following code is from code from Initialize_grid */
+      ABV_V.resize(( wf.n1+2 )*( wf.n2+2 )*( wf.n3+2 )*( wf.n4+2 ), 0.);
+      /* following code is from code from Initialize_Potential */
+      for( int l = 1 ; l <= wf.n4 ; l++ )
+	for( int k = 1 ; k <= wf.n3 ; k++ )
+	  for( int j = 1 ; j <= wf.n2 ; j++ )
+	    for( int i = 1 ; i <= wf.n1 ; i++ )
+	      {		 
+		ABV_V[ wf.in4( l, k , j , i ) ] = charge*charge_nucleus/sqrt( wf.x4[l]*wf.x4[l] + wf.x3[k]*wf.x3[k] + softening_en );
+		ABV_V[ wf.in4( l, k , j , i ) ] /=2.;		 
+	      }
+      
+    }
+  };
+
+
+  struct Potential_He_4D : ABVparam
+  {
+    
+    /* Two electron in 2D model, Helium problem */
+    
+    double charge_1;
+    double charge_2;
+    double charge_nucleus;
+    double mass_1;
+    double mass_2;
+    double softening_en;
+    double softening_ee;
+
+    /* Constructor to initialize the default values: */
+    Potential_He_4D( wavefunction &wf) {
+      charge_1=charge_2 = -1. ;
+      charge_nucleus = 2.;
+      mass_1 = mass_2 = 1.;
+      softening_en = 0.164;  
+      softening_ee = 0.07;
+      /* softening_en = 1; // get from PRL.85,22(2000)
+      /* softening_ee = 1; // get from PRL.85,22(2000) */
+      updateABV(wf);
+    };
+    Potential_He_4D(wavefunction &wf, double q1,double q2,double m1,double m2, double Q,double _soft1,double _soft2) {
+      charge_1 = q1;
+      charge_2 = q2;
+      charge_nucleus = Q;
+      softening_en = _soft1;
+      softening_ee = _soft2;
+      updateABV(wf);
+    };
+    void updateABV(const wavefunction &wf) {
+      /* following code is from code from Create_Potential */
+      ABV_A_x1 =-0.5/mass_1;
+      ABV_A_x2 =-0.5/mass_1;
+      ABV_A_x3 =-0.5/mass_2;
+      ABV_A_x4 =-0.5/mass_2;
+      ABV_B_x1 = charge_1/mass_1;
+      ABV_B_x2 = charge_1/mass_1; 
+      ABV_B_x3 = charge_2/mass_2;
+      ABV_B_x4 = charge_2/mass_2;
+      /* following code is from code from Initialize_grid */
+      ABV_V.resize(( wf.n1+2 )*( wf.n2+2 )*( wf.n3+2 )*(wf.n4+2), 0.);
+      /* following code is from code from Initialize_Potential */
+      for( int l = 1 ; l <= wf.n4 ; l++ )
+	for( int k = 1 ; k <= wf.n3 ; k++ )
+	  for( int j = 1 ; j <= wf.n2 ; j++ )
+	    for( int i = 1 ; i <= wf.n1 ; i++ )
+	      {
+		ABV_V[ wf.in4( l, k , j , i ) ] =
+		  charge_1*charge_nucleus/sqrt( wf.x1[ i ]*wf.x1[ i ]+wf.x2[ j ]*wf.x2[ j ]+softening_en )
+		  +charge_2*charge_nucleus/sqrt( wf.x3[ k ]*wf.x3[ k ]+wf.x4[ l ]*wf.x4[ l ]+softening_en )
+		  +charge_1*charge_2/sqrt( ( wf.x1[ i ]-wf.x3[ k ])*( wf.x1[ i ]-wf.x3[ k ])+ ( wf.x2[ j ]-wf.x4[ l ])*( wf.x2[ j ]-wf.x4[ l ]) +softening_ee );
+		ABV_V[ wf.in4(l, k , j , i ) ] /= 4.;
+	      }    
+    }
+  };
+
+
+
+
+
+
+
+
+  /******molecular potential**************/
+
+  struct Potential_H2_plus_e2D_Rpara : ABVparam
+  {
+    double charge;
+    double charge_nucleus_1;
+    double charge_nucleus_2;
+    double mass;
+    double mass_nucleus_1;
+    double mass_nucleus_2;
+    double softening_en;
+    double softening_nn;
+    
+    /* Constructor to initialize the default values: */
+    Potential_H2_plus_e2D_Rpara(const wavefunction &wf, double Rpara)
+      {
+	charge = -1.;
+	charge_nucleus_1=charge_nucleus_2 = 1.;
+	mass = 1.;
+	mass_nucleus_1 = mass_nucleus_2 = 1836.;
+	/* Softening Parameter for the electron-nuclei interaction */
+	softening_nn = 0.;
+	softening_en = 0.6;  // get from Feng He, PRA 2012
+	updateABV(wf, Rpara);
+      };
+    
+    Potential_H2_plus_e2D_Rpara(const wavefunction &wf,double _charge,double _charge_nucleus_1,double _charge_nucleus_2,double _mass,double _mass_nucleus_1,double _mass_nucleus_2, double _softening_en, double _softening_nn, double Rpara)
+      {
+	charge = _charge ;
+	charge_nucleus_1 = _charge_nucleus_1;
+	charge_nucleus_2 = _charge_nucleus_2;
+	mass = _mass;
+	mass_nucleus_1 = _mass_nucleus_1;
+	mass_nucleus_2 = _mass_nucleus_2;
+	softening_nn = _softening_nn;
+	softening_en = _softening_en;
+	updateABV(wf, Rpara);
+      };
+    
+    void updateABV(const wavefunction &wf, double Rpara) {
+      /* following code is from code from Create_Potential */
+      double reduced_mass = mass_nucleus_1*mass_nucleus_2/( mass_nucleus_1 + mass_nucleus_2 );
+      //double reduced_charge = (mass_nucleus_2*charge_nucleus_1-mass_nucleus_1*charge_nucleus_2)/( mass_nucleus_1 + mass_nucleus_2 );
+
+      ABV_A_x1 = 0.;
+      ABV_A_x2 = 0.;
+      ABV_A_x3 =-0.5/mass;
+      ABV_A_x4 =-0.5/mass;
+      ABV_B_x1 = 0.;
+      ABV_B_x2 = 0.;
+      ABV_B_x3 = charge/mass;  //
+      ABV_B_x4 = charge/mass;  //
+
+
+
+      /* following code is from code from Initialize_grid */
+      ABV_V.resize(( wf.n1+2 )*( wf.n2+2 )*( wf.n3+2 )*( wf.n4+2 ), 0.);
+
+      for( int l = 1; l <= wf.n4; l++ )
+	for( int k = 1; k <= wf.n3; k++ )
+	  for ( int j = 1; j <= wf.n2; j++)
+	    for( int i = 1; i <= wf.n1; i++)
+	      {
+		/* ABV_V[ wf.in4( l, k , j , i ) ] =  */
+		/*   charge*charge_nucleus_1/sqrt( ( wf.x1[ i ]+mass_nucleus_2/(mass_nucleus_1 + mass_nucleus_2)*wf.x3[k])*( wf.x1[ i ]+mass_nucleus_2/(mass_nucleus_1 + mass_nucleus_2)*wf.x3[k]) + ( wf.x2[ j ]+mass_nucleus_2/(mass_nucleus_1 + mass_nucleus_2)*wf.x4[l])*( wf.x2[ j ]+mass_nucleus_2/(mass_nucleus_1 + mass_nucleus_2)*wf.x4[l])  +softening_en ) + */
+		/*   charge*charge_nucleus_2/sqrt( ( wf.x1[ i ]-mass_nucleus_1/(mass_nucleus_1 + mass_nucleus_2)*wf.x3[k])*( wf.x1[ i ]-mass_nucleus_1/(mass_nucleus_1 + mass_nucleus_2)*wf.x3[k]) + ( wf.x2[ j ]-mass_nucleus_1/(mass_nucleus_1 + mass_nucleus_2)*wf.x4[l])*( wf.x2[ j ]-mass_nucleus_1/(mass_nucleus_1 + mass_nucleus_2)*wf.x4[l])  +softening_en ) */
+		/*   +charge_nucleus_1*charge_nucleus_2/sqrt(wf.x3[k]*wf.x3[k]+wf.x4[l]*wf.x4[l]+softening_nn); */
+		ABV_V[ wf.in4( l, k , j , i ) ] = 
+		  -1./sqrt( (Rpara/2.+wf.x3[k])*(Rpara/2.+wf.x3[k])+ wf.x4[l]*wf.x4[l]+softening_en )
+		  -1./sqrt( (Rpara/2.-wf.x3[k])*(Rpara/2.-wf.x3[k])+ wf.x4[l]*wf.x4[l]+softening_en )
+		  +1./sqrt( Rpara*Rpara+softening_nn );
+		ABV_V[ wf.in4( l, k , j , i ) ] /= 2.;
+	      }
+            
+    }
+
+  };
+
+
+
+  struct Potential_H2_plus_e2D_R1D : ABVparam
+  {
+    double charge;
+    double charge_nucleus_1;
+    double charge_nucleus_2;
+    double mass;
+    double mass_nucleus_1;
+    double mass_nucleus_2;
+    double softening_en;
+    double softening_nn;
+    
+    /* Constructor to initialize the default values: */
+    Potential_H2_plus_e2D_R1D(const wavefunction &wf)
+      {
+	charge = -1.;
+	charge_nucleus_1=charge_nucleus_2 = 1.;
+	mass = 1.;
+	mass_nucleus_1 = mass_nucleus_2 = 1836.;
+	/* Softening Parameter for the electron-nuclei interaction */
+	softening_nn = 0.;
+	softening_en = 0.64;  // get from Feng He, PRA 2012
+	updateABV(wf);
+      };
+    
+    Potential_H2_plus_e2D_R1D(const wavefunction &wf,double _charge,double _charge_nucleus_1,double _charge_nucleus_2,double _mass,double _mass_nucleus_1,double _mass_nucleus_2, double _softening_en, double _softening_nn)
+      {
+	charge = _charge ;
+	charge_nucleus_1 = _charge_nucleus_1;
+	charge_nucleus_2 = _charge_nucleus_2;
+	mass = _mass;
+	mass_nucleus_1 = _mass_nucleus_1;
+	mass_nucleus_2 = _mass_nucleus_2;
+	softening_nn = _softening_nn;
+	softening_en = _softening_en;
+	updateABV(wf);
+      };
+    
+    void updateABV(const wavefunction &wf) {
+      /* following code is from code from Create_Potential */
+      double reduced_mass = mass_nucleus_1*mass_nucleus_2/( mass_nucleus_1 + mass_nucleus_2 );
+      //double reduced_charge = (mass_nucleus_2*charge_nucleus_1-mass_nucleus_1*charge_nucleus_2)/( mass_nucleus_1 + mass_nucleus_2 );
+
+      ABV_A_x1 = 0.;
+      ABV_A_x2 =-0.5/reduced_mass;
+      ABV_A_x3 =-0.5/mass;
+      ABV_A_x4 =-0.5/mass;
+      ABV_B_x1 = 0.;
+      ABV_B_x2 = 0.;
+      ABV_B_x3 = charge/mass;  //
+      ABV_B_x4 = charge/mass;  //
+
+
+
+      /* following code is from code from Initialize_grid */
+      ABV_V.resize(( wf.n1+2 )*( wf.n2+2 )*( wf.n3+2 )*( wf.n4+2 ), 0.);
+
+      for( int l = 1; l <= wf.n4; l++ )
+	for( int k = 1; k <= wf.n3; k++ )
+	  for ( int j = 1; j <= wf.n2; j++)
+	    for( int i = 1; i <= wf.n1; i++)
+	      {
+		
+		ABV_V[ wf.in4( l, k , j , i ) ] = 
+		  -1./sqrt( (wf.x3[k])*(wf.x3[k])+(wf.x2[j]/2.+wf.x4[l])*(wf.x2[j]/2.+wf.x4[l])+softening_en )
+		  -1./sqrt( (wf.x3[k])*(wf.x3[k])+(wf.x2[j]/2.-wf.x4[l])*(wf.x2[j]/2.-wf.x4[l])+softening_en )
+		  +1./sqrt( wf.x2[j]*wf.x2[j]+softening_nn );
+		ABV_V[ wf.in4( l, k , j , i ) ] /= 3.;
+	      }
+            
+    }
+
+  };
+
+
+
+
+
+
+
+  struct Potential_H2_plus_e2D_R2D : ABVparam
+  {
+    double charge;
+    double charge_nucleus_1;
+    double charge_nucleus_2;
+    double mass;
+    double mass_nucleus_1;
+    double mass_nucleus_2;
+    double softening_en;
+    double softening_nn;
+    
+    /* Constructor to initialize the default values: */
+    Potential_H2_plus_e2D_R2D(const wavefunction &wf)
+      {
+	charge = -1.;
+	charge_nucleus_1=charge_nucleus_2 = 1.;
+	mass = 1.;
+	mass_nucleus_1 = mass_nucleus_2 = 1836.;//1836.;
+	/* Softening Parameter for the electron-nuclei interaction */
+	softening_nn = 0.;
+	softening_en = 0.6;  // get from Feng He, PRA 2012
+	updateABV(wf);
+      };
+    
+    Potential_H2_plus_e2D_R2D(const wavefunction &wf,double _charge,double _charge_nucleus_1,double _charge_nucleus_2,double _mass,double _mass_nucleus_1,double _mass_nucleus_2, double _softening_en, double _softening_nn)
+      {
+	charge = _charge ;
+	charge_nucleus_1 = _charge_nucleus_1;
+	charge_nucleus_2 = _charge_nucleus_2;
+	mass = _mass;
+	mass_nucleus_1 = _mass_nucleus_1;
+	mass_nucleus_2 = _mass_nucleus_2;
+	softening_nn = _softening_nn;
+	softening_en = _softening_en;
+	updateABV(wf);
+      };
+    
+    void updateABV(const wavefunction &wf) {
+      /* following code is from code from Create_Potential */
+      double reduced_mass = mass_nucleus_1*mass_nucleus_2/( mass_nucleus_1 + mass_nucleus_2 );
+      //double reduced_charge = (mass_nucleus_2*charge_nucleus_1-mass_nucleus_1*charge_nucleus_2)/( mass_nucleus_1 + mass_nucleus_2 );
+
+      ABV_A_x1 =-0.5/reduced_mass;
+      ABV_A_x2 =-0.5/reduced_mass;
+      ABV_A_x3 =-0.5/mass;
+      ABV_A_x4 =-0.5/mass;
+      ABV_B_x1 = 0.;
+      ABV_B_x2 = 0.;
+      ABV_B_x3 = charge/mass;  //
+      ABV_B_x4 = charge/mass;  //
+
+
+
+      /* following code is from code from Initialize_grid */
+      ABV_V.resize(( wf.n1+2 )*( wf.n2+2 )*( wf.n3+2 )*( wf.n4+2 ), 0.);
+
+      for( int l = 1; l <= wf.n4; l++ )
+	for( int k = 1; k <= wf.n3; k++ )
+	  for ( int j = 1; j <= wf.n2; j++)
+	    for( int i = 1; i <= wf.n1; i++)
+	      {
+		/* ABV_V[ wf.in4( l, k , j , i ) ] =  */
+		/*   charge*charge_nucleus_1/sqrt( ( wf.x1[ i ]+mass_nucleus_2/(mass_nucleus_1 + mass_nucleus_2)*wf.x3[k])*( wf.x1[ i ]+mass_nucleus_2/(mass_nucleus_1 + mass_nucleus_2)*wf.x3[k]) + ( wf.x2[ j ]+mass_nucleus_2/(mass_nucleus_1 + mass_nucleus_2)*wf.x4[l])*( wf.x2[ j ]+mass_nucleus_2/(mass_nucleus_1 + mass_nucleus_2)*wf.x4[l])  +softening_en ) + */
+		/*   charge*charge_nucleus_2/sqrt( ( wf.x1[ i ]-mass_nucleus_1/(mass_nucleus_1 + mass_nucleus_2)*wf.x3[k])*( wf.x1[ i ]-mass_nucleus_1/(mass_nucleus_1 + mass_nucleus_2)*wf.x3[k]) + ( wf.x2[ j ]-mass_nucleus_1/(mass_nucleus_1 + mass_nucleus_2)*wf.x4[l])*( wf.x2[ j ]-mass_nucleus_1/(mass_nucleus_1 + mass_nucleus_2)*wf.x4[l])  +softening_en ) */
+		/*   +charge_nucleus_1*charge_nucleus_2/sqrt(wf.x3[k]*wf.x3[k]+wf.x4[l]*wf.x4[l]+softening_nn); */
+		ABV_V[ wf.in4( l, k , j , i ) ] = 
+		  -1./sqrt( (wf.x1[i]/2.+wf.x3[k])*(wf.x1[i]/2.+wf.x3[k])+(wf.x2[j]/2.+wf.x4[l])*(wf.x2[j]/2.+wf.x4[l])+softening_en )
+		  -1./sqrt( (wf.x1[i]/2.-wf.x3[k])*(wf.x1[i]/2.-wf.x3[k])+(wf.x2[j]/2.-wf.x4[l])*(wf.x2[j]/2.-wf.x4[l])+softening_en )
+		  +1./sqrt( wf.x1[i]*wf.x1[i]+wf.x2[j]*wf.x2[j]+softening_nn );
+		ABV_V[ wf.in4( l, k , j , i ) ] /= 4.;
+	      }
+            
+    }
+
+  };
+
+
+  struct Potential_H2_plus_e3D_Rpara : ABVparam
+  {
+    double charge;
+    double charge_nucleus_1;
+    double charge_nucleus_2;
+    double mass;
+    double mass_nucleus_1;
+    double mass_nucleus_2;
+    double softening_en;
+    double softening_nn;
+ 
+    
+    /* Constructor to initialize the default values: */
+    Potential_H2_plus_e3D_Rpara(const wavefunction &wf, double Rpara)
+      {
+	charge = -1.;
+	charge_nucleus_1=charge_nucleus_2 = 1.;
+	mass = 1.;
+	mass_nucleus_1 = mass_nucleus_2 = 1836.;
+	/* Softening Parameter for the electron-nuclei interaction */
+	softening_nn = 0.;
+	softening_en = 0.;
+ 
+	updateABV(wf,Rpara);
+      };
+    
+    Potential_H2_plus_e3D_Rpara(const wavefunction &wf,double _charge,double _charge_nucleus_1,double _charge_nucleus_2,double _mass,double _mass_nucleus_1,double _mass_nucleus_2, double _softening_en, double _softening_nn, double Rpara )
+      {
+	charge = _charge ;
+	charge_nucleus_1 = _charge_nucleus_1;
+	charge_nucleus_2 = _charge_nucleus_2;
+	mass = _mass;
+	mass_nucleus_1 = _mass_nucleus_1;
+	mass_nucleus_2 = _mass_nucleus_2;
+	softening_nn = _softening_nn;
+	softening_en = _softening_en;
+
+	updateABV(wf,Rpara);
+      };
+    
+    void updateABV(const wavefunction &wf, double Rpara) {
+      /* following code is from code from Create_Potential */
+      double reduced_mass = mass_nucleus_1*mass_nucleus_2/( mass_nucleus_1 + mass_nucleus_2 );
+      //double reduced_charge = (mass_nucleus_2*charge_nucleus_1-mass_nucleus_1*charge_nucleus_2)/( mass_nucleus_1 + mass_nucleus_2 );
+      
+      ABV_A_x1 =-0.5/reduced_mass; //R axis
+      ABV_A_x2 =-0.5/mass;
+      ABV_A_x3 =-0.5/mass;
+      ABV_A_x4 =-0.5/mass;
+      ABV_B_x1 = 0.;
+      ABV_B_x2 = charge/mass;
+      ABV_B_x3 = charge/mass;  
+      ABV_B_x4 = charge/mass;  
+      
+      
+      
+      /* following code is from code from Initialize_grid */
+      ABV_V.resize(( wf.n1+2 )*( wf.n2+2 )*( wf.n3+2 )*( wf.n4+2 ), 0.);
+      
+      for( int l = 1; l <= wf.n4; l++ )
+	for( int k = 1; k <= wf.n3; k++ )
+	  for ( int j = 1; j <= wf.n2; j++)
+	    for( int i = 1; i <= wf.n1; i++)
+	      {
+		ABV_V[ wf.in4( l, k , j , i ) ] = 
+		  charge*charge_nucleus_1/sqrt( ( wf.x2[ j ]+mass_nucleus_2/(mass_nucleus_1 + mass_nucleus_2)* Rpara)*( wf.x2[ j ]+mass_nucleus_2/(mass_nucleus_1 + mass_nucleus_2)* Rpara) + wf.x3[k]*wf.x3[k]+wf.x4[l]*wf.x4[l] +softening_en ) +
+		  charge*charge_nucleus_2/sqrt( ( wf.x2[ j ]-mass_nucleus_1/(mass_nucleus_1 + mass_nucleus_2)* Rpara)*( wf.x2[ j ]-mass_nucleus_1/(mass_nucleus_1 + mass_nucleus_2)* Rpara) + wf.x3[k]*wf.x3[k]+wf.x4[l]*wf.x4[l] +softening_en )
+		  +charge_nucleus_1*charge_nucleus_2/sqrt( Rpara*Rpara+softening_nn);
+
+		ABV_V[ wf.in4( l, k , j , i ) ] /= 3.;
+	      }
+            
+    }
+
+  };
+
+
+  struct Potential_H2_plus_e3D_R1D : ABVparam
+  {
+    double charge;
+    double charge_nucleus_1;
+    double charge_nucleus_2;
+    double mass;
+    double mass_nucleus_1;
+    double mass_nucleus_2;
+    double softening_en;
+    double softening_nn;
+    
+    /* Constructor to initialize the default values: */
+    Potential_H2_plus_e3D_R1D(const wavefunction &wf)
+      {
+	charge = -1.;
+	charge_nucleus_1=charge_nucleus_2 = 1.;
+	mass = 1.;
+	mass_nucleus_1 = mass_nucleus_2 = 1836.;
+	/* Softening Parameter for the electron-nuclei interaction */
+	softening_nn = 0.;
+	softening_en = 0.;  
+	updateABV(wf);
+      };
+    
+    Potential_H2_plus_e3D_R1D(const wavefunction &wf,double _charge,double _charge_nucleus_1,double _charge_nucleus_2,double _mass,double _mass_nucleus_1,double _mass_nucleus_2, double _softening_en, double _softening_nn)
+      {
+	charge = _charge ;
+	charge_nucleus_1 = _charge_nucleus_1;
+	charge_nucleus_2 = _charge_nucleus_2;
+	mass = _mass;
+	mass_nucleus_1 = _mass_nucleus_1;
+	mass_nucleus_2 = _mass_nucleus_2;
+	softening_nn = _softening_nn;
+	softening_en = _softening_en;
+	updateABV(wf);
+      };
+    
+    void updateABV(const wavefunction &wf) {
+      /* following code is from code from Create_Potential */
+      double reduced_mass = mass_nucleus_1*mass_nucleus_2/( mass_nucleus_1 + mass_nucleus_2 );
+      //double reduced_charge = (mass_nucleus_2*charge_nucleus_1-mass_nucleus_1*charge_nucleus_2)/( mass_nucleus_1 + mass_nucleus_2 );
+      
+      ABV_A_x1 =-0.5/reduced_mass;
+      ABV_A_x2 =-0.5/mass;
+      ABV_A_x3 =-0.5/mass;
+      ABV_A_x4 =-0.5/mass;
+      ABV_B_x1 = 0.;
+      ABV_B_x2 = charge/mass;
+      ABV_B_x3 = charge/mass;  
+      ABV_B_x4 = charge/mass;  
+      
+      
+      
+      /* following code is from code from Initialize_grid */
+      ABV_V.resize(( wf.n1+2 )*( wf.n2+2 )*( wf.n3+2 )*( wf.n4+2 ), 0.);
+      
+      for( int l = 1; l <= wf.n4; l++ )
+	for( int k = 1; k <= wf.n3; k++ )
+	  for ( int j = 1; j <= wf.n2; j++)
+	    for( int i = 1; i <= wf.n1; i++)
+	      {
+		ABV_V[ wf.in4( l, k , j , i ) ] = 
+		  charge*charge_nucleus_1/sqrt( ( wf.x2[ j ]+mass_nucleus_2/(mass_nucleus_1 + mass_nucleus_2)*wf.x1[i])*( wf.x2[ j ]+mass_nucleus_2/(mass_nucleus_1 + mass_nucleus_2)*wf.x1[i]) + wf.x3[k]*wf.x3[k]+wf.x4[l]*wf.x4[l] +softening_en ) +
+		  charge*charge_nucleus_2/sqrt( ( wf.x2[ j ]-mass_nucleus_1/(mass_nucleus_1 + mass_nucleus_2)*wf.x1[i])*( wf.x2[ j ]-mass_nucleus_1/(mass_nucleus_1 + mass_nucleus_2)*wf.x1[i]) + wf.x3[k]*wf.x3[k]+wf.x4[l]*wf.x4[l] +softening_en )
+		  +charge_nucleus_1*charge_nucleus_2/sqrt(wf.x1[i]*wf.x1[i]+softening_nn);
+
+		ABV_V[ wf.in4( l, k , j , i ) ] /= 4.;
+	      }
+            
+    }
+
+  };
+
+
+
+}
+
+/**********************end of Cartesian_4D***/
+
+
+
+namespace Cylindrical_4D
+{
+
+
+  struct ABVparam {
+  
+    /**
+     * Declare ABV coefficients.  
+     */
+    double ABV_A_x1;
+    vector<double> ABV_B_x1;
+  
+    double ABV_A_x2;
+    double ABV_B_x2;
+  
+    double ABV_A_x3;
+    double ABV_B_x3;
+
+    double ABV_A_x4;
+    double ABV_B_x4;
+  
+    /**
+     * Declare potentials.  
+     */
+    vector<double> ABV_V;
+    vector<double> ABV_V_deriv;
+
+  };
+
+}
+
+
+#endif	/* POTENTIALS_H */
