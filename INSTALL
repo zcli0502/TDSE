@@ -1,0 +1,20 @@
+Installation of NpsfLib-0.x
+---------------------------
+
+From tarball
+------------
+
+tar xzvf npsflib-0.x.tar.gz
+cd dist
+make toy
+
+From Code Repository
+--------------------
+svn co  http://planet.pks.mpg.de/svn/npsflib/tags/npsflib-0.x
+cd npsflib-0.x
+
+Run simulation
+--------------
+make initial
+./initial InitialStates.cfg
+

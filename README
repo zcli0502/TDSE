@@ -1,0 +1,21 @@
+NpsfLib
+-------
+NpsfLib provides a library to solve the Time Dependent Schrödinger Equations (TDSE) for N-Dimensions in several geometries. Based from a skeleton of new simulations and the routines of the library you can develop scientific applications. The project is made by the NPSF Group leaded by Andreas Becker at the MPI PKS.
+
+Project Page
+------------
+The project resides at http://planet.pks.mpg.de/trac/npsflib
+
+Developer Documentation
+-----------------------
+API docs are generated with Doxygen. Run 
+
+make doc
+
+and find the generated documentation in a directory named html.
+
+Installation
+------------
+For installation instructions see INSTALL.
+
+
